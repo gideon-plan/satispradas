@@ -6,7 +6,7 @@
 {.experimental: "strict_funcs".}
 
 import std/strutils
-import lattice, encode
+import basis/code/choice, encode
 
 # =====================================================================================================================
 # Types
@@ -17,7 +17,7 @@ type
     feasible*: bool
     description*: string
 
-  CheckSatFn* = proc(smtlib: string): Result[bool, BridgeError] {.raises: [].}
+  CheckSatFn* = proc(smtlib: string): Choice[bool] {.raises: [].}
     ## Returns true if the SMT-LIB problem is satisfiable.
 
 # =====================================================================================================================
@@ -25,24 +25,24 @@ type
 # =====================================================================================================================
 
 proc check_feasibility*(problem: SmtProblem,
-                        check_fn: CheckSatFn): Result[FeasibilityResult, BridgeError] =
+                        check_fn: CheckSatFn): Choice[FeasibilityResult] =
   ## Check if the hard constraints are satisfiable.
   let smtlib = to_smtlib(problem)
   let sat = check_fn(smtlib)
   if sat.is_bad:
-    return Result[FeasibilityResult, BridgeError].bad(sat.err)
+    return bad[FeasibilityResult](sat.err)
   if sat.val:
-    Result[FeasibilityResult, BridgeError].good(
+    good(
       FeasibilityResult(feasible: true,
                         description: "Hard constraints are satisfiable"))
   else:
-    Result[FeasibilityResult, BridgeError].good(
+    good(
       FeasibilityResult(feasible: false,
                         description: "Hard constraints are unsatisfiable -- no solution exists"))
 
 proc check_feasibility_with_extra*(problem: SmtProblem, extra_assertion: string,
                                    check_fn: CheckSatFn
-                                  ): Result[FeasibilityResult, BridgeError] =
+                                  ): Choice[FeasibilityResult] =
   ## Check feasibility with an additional constraint (e.g. "what if we also require X?").
   var lines: seq[string]
   lines.add(to_smtlib(problem))
@@ -52,11 +52,10 @@ proc check_feasibility_with_extra*(problem: SmtProblem, extra_assertion: string,
     let modified = parts[0] & "(assert " & extra_assertion & ")\n(check-sat)" & parts[1]
     let sat = check_fn(modified)
     if sat.is_bad:
-      return Result[FeasibilityResult, BridgeError].bad(sat.err)
-    Result[FeasibilityResult, BridgeError].good(
+      return bad[FeasibilityResult](sat.err)
+    good(
       FeasibilityResult(feasible: sat.val,
                         description: if sat.val: "Feasible with extra constraint"
                                      else: "Infeasible with extra constraint"))
   else:
-    Result[FeasibilityResult, BridgeError].bad(
-      BridgeError(msg: "Failed to inject extra assertion"))
+    bad[FeasibilityResult]("satispradas", "Failed to inject extra assertion")

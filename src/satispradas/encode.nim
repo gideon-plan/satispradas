@@ -6,7 +6,11 @@
 {.experimental: "strict_funcs".}
 
 import std/strutils
-import lattice
+
+type
+  BridgeError* = object of CatchableError
+
+import basis/code/choice
 
 # =====================================================================================================================
 # Types
@@ -40,20 +44,19 @@ proc encode_constraint*(description, assertion: string): SmtConstraint =
 proc encode_problem*(entities: seq[(string, int)],
                      hard_constraints: seq[(string, string)],
                      objective: string = "", minimize: bool = true
-                    ): Result[SmtProblem, BridgeError] =
+                    ): Choice[SmtProblem] =
   ## Encode a pradas-style problem into SMT representation.
   ## entities: (name, domain_size) pairs
   ## hard_constraints: (description, SMT-LIB assertion) pairs
   var vars: seq[SmtVariable]
   for (name, dom) in entities:
     if dom <= 0:
-      return Result[SmtProblem, BridgeError].bad(
-        BridgeError(msg: "Invalid domain size for " & name & ": " & $dom))
+      return bad[SmtProblem]("satispradas", "Invalid domain size for " & name & ": " & $dom)
     vars.add(encode_variable(name, dom))
   var constraints: seq[SmtConstraint]
   for (desc, assertion) in hard_constraints:
     constraints.add(encode_constraint(desc, assertion))
-  Result[SmtProblem, BridgeError].good(
+  good(
     SmtProblem(variables: vars, constraints: constraints,
                objective: objective, minimize: minimize))
 

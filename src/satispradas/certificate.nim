@@ -5,7 +5,7 @@
 {.experimental: "strict_funcs".}
 
 import std/[strutils, tables]
-import lattice, encode
+import basis/code/choice, encode
 
 # =====================================================================================================================
 # Types
@@ -19,7 +19,7 @@ type
     verified*: bool
     description*: string
 
-  VerifyCertFn* = proc(smtlib: string): Result[bool, BridgeError] {.raises: [].}
+  VerifyCertFn* = proc(smtlib: string): Choice[bool] {.raises: [].}
     ## Returns true if the certificate is valid (all assertions SAT).
 
 # =====================================================================================================================
@@ -51,17 +51,17 @@ proc to_verification_query*(problem: SmtProblem, cert: Certificate): string =
   lines.join("\n")
 
 proc verify_certificate*(problem: SmtProblem, cert: var Certificate,
-                         verify_fn: VerifyCertFn): Result[bool, BridgeError] =
+                         verify_fn: VerifyCertFn): Choice[bool] =
   ## Verify a certificate against the problem constraints.
   let query = to_verification_query(problem, cert)
   let sat = verify_fn(query)
   if sat.is_bad:
-    return Result[bool, BridgeError].bad(sat.err)
+    return bad[bool](sat.err)
   cert.verified = sat.val
   cert.constraints_satisfied = if sat.val: cert.total_constraints else: 0
   cert.description = if sat.val: "Certificate verified: all constraints satisfied"
                      else: "Certificate invalid: constraints violated"
-  Result[bool, BridgeError].good(sat.val)
+  good(sat.val)
 
 proc format_certificate*(cert: Certificate): string =
   ## Human-readable certificate.

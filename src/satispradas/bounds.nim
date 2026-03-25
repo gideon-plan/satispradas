@@ -6,7 +6,7 @@
 {.experimental: "strict_funcs".}
 
 import std/strutils
-import lattice, encode
+import basis/code/choice, encode
 
 # =====================================================================================================================
 # Types
@@ -23,7 +23,7 @@ type
     proven*: bool         ## Whether the bound was proven (sat/unsat)
     description*: string
 
-  CheckBoundFn* = proc(smtlib: string): Result[bool, BridgeError] {.raises: [].}
+  CheckBoundFn* = proc(smtlib: string): Choice[bool] {.raises: [].}
     ## Function that checks an SMT-LIB assertion. Returns true if SAT.
 
 # =====================================================================================================================
@@ -63,28 +63,28 @@ proc make_upper_bound_query*(problem: SmtProblem, bound: int): string =
   lines.join("\n")
 
 proc check_lower_bound*(problem: SmtProblem, bound: int,
-                        check_fn: CheckBoundFn): Result[BoundProof, BridgeError] =
+                        check_fn: CheckBoundFn): Choice[BoundProof] =
   ## Check if `bound` is a proven lower bound.
   ## If no solution exists with objective < bound, the bound is proven.
   let query = make_lower_bound_query(problem, bound)
   let sat = check_fn(query)
   if sat.is_bad:
-    return Result[BoundProof, BridgeError].bad(sat.err)
+    return bad[BoundProof](sat.err)
   let proven = not sat.val  # UNSAT means bound is proven
-  Result[BoundProof, BridgeError].good(
+  good(
     BoundProof(kind: bkLower, value: bound, proven: proven,
                description: if proven: "Proven: no solution below " & $bound
                             else: "Not proven: solution exists below " & $bound))
 
 proc check_upper_bound*(problem: SmtProblem, bound: int,
-                        check_fn: CheckBoundFn): Result[BoundProof, BridgeError] =
+                        check_fn: CheckBoundFn): Choice[BoundProof] =
   ## Check if `bound` is a proven upper bound.
   let query = make_upper_bound_query(problem, bound)
   let sat = check_fn(query)
   if sat.is_bad:
-    return Result[BoundProof, BridgeError].bad(sat.err)
+    return bad[BoundProof](sat.err)
   let proven = not sat.val
-  Result[BoundProof, BridgeError].good(
+  good(
     BoundProof(kind: bkUpper, value: bound, proven: proven,
                description: if proven: "Proven: no solution above " & $bound
                             else: "Not proven: solution exists above " & $bound))

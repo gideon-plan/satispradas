@@ -2,5 +2,5 @@
 
 {.experimental: "strict_funcs".}
 
-import satispradas/[encode, bounds, feasibility, certificate, session, lattice]
-export encode, bounds, feasibility, certificate, session, lattice
+import satispradas/[encode, bounds, feasibility, certificate, session]
+export encode, bounds, feasibility, certificate, session
