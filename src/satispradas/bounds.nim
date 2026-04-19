@@ -13,9 +13,9 @@ import basis/code/choice, encode
 # =====================================================================================================================
 
 type
-  BoundKind* = enum
-    bkLower   ## Proven lower bound (minimum possible)
-    bkUpper   ## Proven upper bound (maximum possible)
+  BoundKind* {.pure.} = enum
+    Lower   ## Proven lower bound (minimum possible)
+    Upper   ## Proven upper bound (maximum possible)
 
   BoundProof* = object
     kind*: BoundKind
@@ -72,7 +72,7 @@ proc check_lower_bound*(problem: SmtProblem, bound: int,
     return bad[BoundProof](sat.err)
   let proven = not sat.val  # UNSAT means bound is proven
   good(
-    BoundProof(kind: bkLower, value: bound, proven: proven,
+    BoundProof(kind: BoundKind.Lower, value: bound, proven: proven,
                description: if proven: "Proven: no solution below " & $bound
                             else: "Not proven: solution exists below " & $bound))
 
@@ -85,6 +85,6 @@ proc check_upper_bound*(problem: SmtProblem, bound: int,
     return bad[BoundProof](sat.err)
   let proven = not sat.val
   good(
-    BoundProof(kind: bkUpper, value: bound, proven: proven,
+    BoundProof(kind: BoundKind.Upper, value: bound, proven: proven,
                description: if proven: "Proven: no solution above " & $bound
                             else: "Not proven: solution exists above " & $bound))

@@ -62,7 +62,7 @@ suite "bounds":
     let result = check_lower_bound(problem.val, 0, mock_check)
     check result.is_good
     check result.val.proven
-    check result.val.kind == bkLower
+    check result.val.kind == BoundKind.Lower
 
   test "check lower bound not proven (SAT)":
     let problem = encode_problem(@[("x", 5)], @[], "x", true)
